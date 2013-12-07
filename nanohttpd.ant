@@ -4,25 +4,25 @@
 		<javac
 			includeantruntime="false"
 			srcdir="nanohttpd/core/src/main/java"
-			destdir="nanohttpd/build"
+			destdir="build"
 			includes="**/*.java"/>
 		<jar
 			destfile="jars/nanohttpd.core.jar"
-			basedir="nanohttpd/build"
-			includes="fi/**/*.class"/>
-		<delete dir="nanohttpd/build/fi"/>
+			basedir="build"
+			includes="fi/**/*.class, fi/**/*.java"/>
+		<delete dir="build/fi"/>
 	</target>
 	
 	<target name="webserver">
 		<javac
 			includeantruntime="false"
 			srcdir="nanohttpd/webserver/src/main/java"
-			destdir="nanohttpd/build"
-			classpath="nanohttpd/build/; jars/nanohttpd.core.jar"/>
+			destdir="build"
+			classpath="build/; jars/nanohttpd.core.jar"/>
 		<jar
 			destfile="jars/nanohttpd.webserver.jar"
-			basedir="nanohttpd/build"
-			includes="fi/**/*.class"/>
-		<delete dir="nanohttpd/build/fi"/>
+			basedir="build"
+			includes="fi/**/*.class, fi/**/*.java"/>
+		<delete dir="build/fi"/>
 	</target>
 </project>
