@@ -1,0 +1,26 @@
+
+<project>
+	<target name="core">
+		<javac
+			srcdir="nanohttpd/core/src/main/java"
+			destdir="nanohttpd/build"
+			includes="**/*.java"/>
+		<jar
+			destfile="jars/nanohttpd.core.jar"
+			basedir="nanohttpd/build"
+			includes="fi/**/*.class"/>
+		<delete dir="nanohttpd/build/fi"/>
+	</target>
+	
+	<target name="webserver">
+		<javac
+			srcdir="nanohttpd/webserver/src/main/java"
+			destdir="nanohttpd/build"
+			classpath="nanohttpd/build/; jars/nanohttpd.core.jar"/>
+		<jar
+			destfile="jars/nanohttpd.webserver.jar"
+			basedir="nanohttpd/build"
+			includes="fi/**/*.class"/>
+		<delete dir="nanohttpd/build/fi"/>
+	</target>
+</project>
