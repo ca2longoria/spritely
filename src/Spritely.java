@@ -19,31 +19,37 @@ public class Spritely
 		
 		SimpleWebServer serv = new SimpleWebServer(hostname, port, wwwRoot, false);
 		
-		WebServerPlugin svgPlugin = new ImageSvgXmlPlugin();
-		SimpleWebServer.registerPluginForMimeType(
-			new String[]{"null.svg"}, // these are necessary to add extensiosn to MIME_TYPES
-			"image/svg+xml", // mime-type
-			svgPlugin, // WebServerPlugin
-			null // command line options
-		);
+		LocalWebServerPlugin svgPlugin = new ImageSvgXmlPlugin();
+		svgPlugin.registerWithSimpleWebServer();
 		
 		ServerRunner.executeInstance(serv);
 	}
 	
 	
-	private static class ImageSvgXmlPlugin implements WebServerPlugin
+	private static interface LocalWebServerPlugin extends WebServerPlugin
 	{
-		@Override
-		public boolean canServeUri(String uri, File rootDir)
+		public void registerWithSimpleWebServer();
+	}
+	
+	private static class ImageSvgXmlPlugin implements LocalWebServerPlugin
+	{
+		@Override public void registerWithSimpleWebServer()
+		{
+			SimpleWebServer.registerPluginForMimeType(
+				new String[]{"null.svg"}, // these are necessary to add extensiosn to MIME_TYPES
+				"image/svg+xml", // mime-type
+				this, // WebServerPlugin
+				null // command line options
+			);
+		}
+		
+		@Override public boolean canServeUri(String uri, File rootDir)
 		{ return new File(rootDir,uri).exists(); }
 
-		@Override
-		public void initialize(Map<String, String> commandLineOptions)
-		{ }
+		@Override public void initialize(Map<String, String> commandLineOptions) {}
 		
-		@Override
-		public Response serveFile(String uri, Map<String, String> headers,
-				File file, String mimeType)
+		@Override public Response serveFile(String uri, Map<String, String> headers,
+			File file, String mimeType)
 		{
 			FileInputStream fin = null;
 			try { fin = new FileInputStream(file); }
