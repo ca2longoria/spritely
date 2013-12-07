@@ -2,6 +2,7 @@
 <project>
 	<target name="core">
 		<javac
+			includeantruntime="false"
 			srcdir="nanohttpd/core/src/main/java"
 			destdir="nanohttpd/build"
 			includes="**/*.java"/>
@@ -14,6 +15,7 @@
 	
 	<target name="webserver">
 		<javac
+			includeantruntime="false"
 			srcdir="nanohttpd/webserver/src/main/java"
 			destdir="nanohttpd/build"
 			classpath="nanohttpd/build/; jars/nanohttpd.core.jar"/>
