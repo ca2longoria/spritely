@@ -1,28 +1,47 @@
 
 <project>
+	
+	<property name="dir.jars" value="jars"/>
+	<property name="dir.build" value="build"/>
+	<property name="dir.nanohttpd" value="nanohttpd"/>
+	
+	<property name="dir.core-source" value="core/src/main/java"/>
+	<property name="dir.webserver-source" value="webserver/src/main/java"/>
+	
+	<property name="dir.core-srcdir" value="${dir.nanohttpd}/${dir.core-source}"/>
+	<property name="dir.webserver-srcdir" value="${dir.nanohttpd}/${dir.webserver-source}"/>
+	
+	<property name="dir.core-jar" value="${dir.jars}"/>
+	
 	<target name="core">
 		<javac
 			includeantruntime="false"
-			srcdir="nanohttpd/core/src/main/java"
-			destdir="build"
+			srcdir="${dir.core-srcdir}"
+			destdir="${dir.build}"
 			includes="**/*.java"/>
-		<jar
-			destfile="jars/nanohttpd.core.jar"
-			basedir="build"
-			includes="fi/**/*.class, fi/**/*.java"/>
-		<delete dir="build/fi"/>
+		<jar	destfile="${dir.jars}/nanohttpd.core.jar"
+				basedir="${dir.build}">
+			<fileset dir="." includes="fi/**/*.class"/>
+			<fileset dir="${dir.core-srcdir}" includes="fi/**/*.java"/>
+		</jar>
+		<delete dir="${dir.build}/fi"/>
 	</target>
 	
-	<target name="webserver">
+	<target name="webserver" depends="check-core-jar" if="core-jar-available">
 		<javac
 			includeantruntime="false"
-			srcdir="nanohttpd/webserver/src/main/java"
-			destdir="build"
-			classpath="build/; jars/nanohttpd.core.jar"/>
-		<jar
-			destfile="jars/nanohttpd.webserver.jar"
-			basedir="build"
-			includes="fi/**/*.class, fi/**/*.java"/>
-		<delete dir="build/fi"/>
+			srcdir="${dir.webserver-srcdir}"
+			destdir="${dir.build}"
+			classpath="${dir.build}/; ${dir.jars}/nanohttpd.core.jar"/>
+		<jar	destfile="${dir.jars}/nanohttpd.webserver.jar"
+				basedir="${dir.build}">
+			<fileset dir="." includes="fi/**/*.class"/>
+			<fileset dir="${dir.webserver-srcdir}" includes="fi/**/*.java"/>
+		</jar>
+		<delete dir="${dir.build}/fi"/>
+	</target>
+	
+	<target name="check-core-jar">
+		<available file="${dir.core-jar}/nanohttpd.core.jar" property="core-jar-available"/>
 	</target>
 </project>
