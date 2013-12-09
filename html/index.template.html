@@ -2,7 +2,7 @@
 <html>
 
 <head>
-<script type='text/javascript' src='jquery.js'></script>
+<script type='text/javascript' src='jquery-1.10.2.js'></script>
 <!--<script type='text/javascript' src='http://synapsehaven.net/jsheaders/basics.js'></script>-->
 <script type='text/javascript'>
 	
@@ -10,10 +10,13 @@
 	{
 		var fdialog = $('#filedialog')[0];
 		
+		// Here is the thing I'll need to remember for later.  The FormData object.
 		var data = new FormData();
 		for (var i=0; i < fdialog.files.length; ++i)
 			data.append('file-'+i,fdialog.files[i]);
 		
+		// This is straightforward enough, except that I should recall the
+		// "false" fields contentType and processData.
 		$.ajax({
 			type:'POST',
 			url:':heretakethis',
@@ -76,8 +79,8 @@
 		<form action="/:heretakethis" method="POST" enctype="multipart/form-data">
 			<input id='filedialog' type='file' name='file'/>
 		</form>
-		<input type='button' name='Submit' onclick='onUploadImageSubmit()'/>
-		<img id='resultingimage' width=300 height=200/>
+		<input type='button' value='Submit' onclick='onUploadImageSubmit()'/>
+		<img id='resultingimage'/>
 	</div>
 	
 	<div class='testgroup'>
