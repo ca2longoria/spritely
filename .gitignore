@@ -2,6 +2,9 @@
 " Ignore Eclipse's build/built directory.
 /bin
 
+" Ignore the Spritely tmp directory.
+/tmp
+
 " Ignore the nanohttpd directory.
 nanohttpd
 
