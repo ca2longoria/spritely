@@ -2,8 +2,32 @@
 <html>
 
 <head>
-<script type='text/javascript' src='http://synapsehaven.net/jsheaders/basics.js'></script>
+<script type='text/javascript' src='jquery.js'></script>
+<!--<script type='text/javascript' src='http://synapsehaven.net/jsheaders/basics.js'></script>-->
 <script type='text/javascript'>
+	
+	function onUploadImageSubmit()
+	{
+		var fdialog = $('#filedialog')[0];
+		
+		var data = new FormData();
+		for (var i=0; i < fdialog.files.length; ++i)
+			data.append('file-'+i,fdialog.files[i]);
+		
+		$.ajax({
+			type:'POST',
+			url:':heretakethis',
+			data:data,
+			cache:false,
+			contentType:false,
+			processData:false,
+			success:function(data)
+			{
+				$('#resultingimage')[0].src = ':getimage';
+			}
+		});
+	}
+	
 	function onLoad()
 	{
 		var nodes = document.querySelectorAll('div');
@@ -50,9 +74,10 @@
 	<div class='testgroup'>
 		Test file loading and... interaction.
 		<form action="/:heretakethis" method="POST" enctype="multipart/form-data">
-			<input id='filedialog' name='file' type='file'/>
-			<input type="submit" name='submit' value="Send"/>
+			<input id='filedialog' type='file' name='file'/>
 		</form>
+		<input type='button' name='Submit' onclick='onUploadImageSubmit()'/>
+		<img id='resultingimage' width=300 height=200/>
 	</div>
 	
 	<div class='testgroup'>

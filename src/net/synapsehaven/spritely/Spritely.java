@@ -162,10 +162,17 @@ public class Spritely //implements Plugins.LocalWebServerPlugin
 						}
 					}
 					
+					/*
 					InputStream in = null;
 					try { in = new FileInputStream(Spritely.this.getImageFile()); }
 					catch (IOException e) { e.printStackTrace(); }
-					return new Response(Response.Status.OK, "image/png", in); 
+					return new Response(Response.Status.OK, "image/png", in);
+					//*/
+					
+					return new Response(
+						Response.Status.OK,
+						"text/plain",
+						"tmp/"+Spritely.this.getImageFile().getName());
 				}
 			}
 			
