@@ -6,9 +6,9 @@ import java.io.FileNotFoundException;
 import java.util.Map;
 
 import fi.iki.elonen.NanoHTTPD;
+import fi.iki.elonen.NanoHTTPD.Response;
 import fi.iki.elonen.SimpleWebServer;
 import fi.iki.elonen.WebServerPlugin;
-import fi.iki.elonen.NanoHTTPD.Response;
 
 public class Plugins
 {
@@ -34,8 +34,7 @@ public class Plugins
 
 		@Override public void initialize(Map<String, String> commandLineOptions) {}
 		
-		@Override public Response serveFile(String uri, Map<String, String> headers,
-			File file, String mimeType)
+		@Override public Response serveFile(String uri, Map<String, String> headers, File file, String mimeType)
 		{
 			FileInputStream fin = null;
 			try { fin = new FileInputStream(file); }

@@ -18,7 +18,7 @@
 			console.log(fdialog.files);
 			
 			//var res = $ajax('
-			fdialog.form.submit();
+			//fdialog.form.submit();
 		};
 	}
 </script>
@@ -49,8 +49,9 @@
 	
 	<div class='testgroup'>
 		Test file loading and... interaction.
-		<form action="/" method="post" enctype="multipart/form-data">
-			<input id='filedialog' type='file' multiple/>
+		<form action="/something.spritely" method="POST" enctype="multipart/form-data">
+			<input id='filedialog' name='file' type='file'/>
+			<input type="submit" name='submit' value="Send"/>
 		</form>
 	</div>
 	
