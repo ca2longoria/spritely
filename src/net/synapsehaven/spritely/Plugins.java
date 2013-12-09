@@ -17,6 +17,7 @@ public class Plugins
 		public void registerWithSimpleWebServer();
 	}
 	
+	/*
 	public static class ImageSvgXmlPlugin implements LocalWebServerPlugin
 	{
 		@Override public void registerWithSimpleWebServer()
@@ -45,4 +46,5 @@ public class Plugins
 				Response.Status.OK, "image/svg+xml", fin);
 		}	
 	}
+	//*/
 }
