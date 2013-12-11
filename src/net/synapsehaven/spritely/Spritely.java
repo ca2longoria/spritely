@@ -38,11 +38,24 @@ public class Spritely //implements Plugins.LocalWebServerPlugin
 	
 	protected final static int maxImageSize = 4000000;
 	
-	protected BufferedImage workingImage = null;
-	protected File workingImageFile = null;
+	protected Spritely.Session currentSession = null;
+	
+	//protected BufferedImage workingImage = null;
+	//protected File workingImageFile = null;
+	
+	protected void initNewSession()
+	{
+		currentSession = new Session();
+	}
 	
 	public void acquireImageFile(File file)
 	{
+		if (currentSession == null)
+			return;
+		
+		currentSession.acquireImageFile(file);
+		
+		/*
 		if (file.length() > maxImageSize)
 			return;
 		
@@ -57,13 +70,60 @@ public class Spritely //implements Plugins.LocalWebServerPlugin
 		
 		workingImage = im;
 		workingImageFile = f;
+		//*/
 	}
 	
 	public File getImageFile()
 	{
-		return workingImageFile;
+		return currentSession.imageSet.getWorkingImageFile();
 	}
 	
+	public class Session
+	{
+		// Why am I using non-static classes for this?
+		protected ImageSet imageSet = this.new ImageSet();
+		
+		public void acquireImageFile(File file)
+		{
+			imageSet.setWorkingImageFile(file);
+		}
+		
+		public class ImageSet
+		{
+			protected BufferedImage workingImage = null;
+			protected File workingImageFile = null;
+			
+			private BufferedImage lineDivisions;
+			private BufferedImage characterOutlines;
+			
+			public BufferedImage getWorkingImage() { return workingImage; }
+			public BufferedImage getLineDivisionImage() { return lineDivisions; }
+			public BufferedImage getCharacterOutlines() { return characterOutlines; }
+			
+			public File getWorkingImageFile()
+			{
+				return workingImageFile;
+			}
+			
+			public void setWorkingImageFile(File file)
+			{
+				if (file.length() > maxImageSize)
+					return;
+				
+				File f = null;
+				BufferedImage im = null;
+				try {
+					im = ImageIO.read(file);
+					f = new File("tmp/"+file.getName());
+					ImageIO.write(im, "png", f);			
+				}
+				catch (IOException e) { e.printStackTrace(); }
+				
+				workingImage = im;
+				workingImageFile = f;
+			}
+		}
+	}
 	
 	public class Server extends NanoHTTPD
 	{
@@ -154,6 +214,8 @@ public class Spritely //implements Plugins.LocalWebServerPlugin
 						headers.get("content-type").contains("multipart/form-data"))
 					{
 						System.out.println("Multipart... Multipart... Muuultiiipaaart...");
+						
+						Spritely.this.initNewSession();
 						
 						for (Entry<String,String> e : files.entrySet())
 						{
