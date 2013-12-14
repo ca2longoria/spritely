@@ -20,22 +20,6 @@ import fi.iki.elonen.ServerRunner;
 
 public class Spritely //implements Plugins.LocalWebServerPlugin
 {
-	public static void main(String[] args)
-	{
-		// This needs to have an actual name, apparently.  "127.0.0.1" was causing
-		// problems with multipart/form-data requests.
-		int port = 10801;
-		File wwwRoot = new File(args.length > 0 ? args[0] : "html");
-		
-		Spritely spritely = new Spritely();
-		
-		Server gorp = spritely.new Server(port);
-		gorp.addRoot("localhost", wwwRoot);
-		gorp.addRoot("127.0.0.1", wwwRoot);
-		
-		ServerRunner.executeInstance(gorp);
-	}
-	
 	protected final static int maxImageSize = 4000000;
 	
 	protected Spritely.Session currentSession = null;
