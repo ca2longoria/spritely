@@ -26,8 +26,8 @@ public class Server extends NanoHTTPD
 		
 		// Other Text
 		this.addFileExtensionMimeTypeAssociation("js", "text/javascript");
-		this.addFileExtensionMimeTypeAssociation("js", "text/css");
-		this.addFileExtensionMimeTypeAssociation("js", "text/php"); // ?
+		this.addFileExtensionMimeTypeAssociation("css", "text/css");
+		this.addFileExtensionMimeTypeAssociation("php", "text/php"); // ?
 		
 		// Images
 		this.addFileExtensionMimeTypeAssociation("bmp", "image/bmp");
@@ -72,11 +72,11 @@ public class Server extends NanoHTTPD
 	public Response serve(String uri, Method method, Map<String,
 		String> headers, Map<String, String> parms, Map<String, String> files)
 	{
-		// A little output
+		// A little output.
 		System.out.println("headers: "+headers);
 		System.out.println("files: "+files);
 		
-		// 
+		// Determine root directory for host. 
 		String host = headers.get("host");
 		File rootDir = null;
 		for (Entry<String,File> a : rootMap.entrySet())
@@ -89,39 +89,56 @@ public class Server extends NanoHTTPD
 			}
 		}
 		
-		// If committing some nefarious deed...
-		if (method == Method.POST)
+		Response pluginResponse = null;
+		
+		for (Plugin p : plugins)
 		{
-			// NOTE: Let us organize by behavior or action...
-			System.out.println("POST: okay, uri: "+uri);
-			
-			
+			// TODO: handleRequest can do canHandleRequest's job, too, by
+			//       returning null.  Perhaps consolidate these. 
+			if (p.canHandleRequest(uri,method,headers,parms,files))
+			{
+				pluginResponse = p.handleRequest(uri,method,headers,parms,files);
+				return pluginResponse;
+			}
 		}
 		
-		// If directly serving a file...
-		else if (method == Method.GET)
+		// If no plugin handled this, treat it as a siple file serve.
+		if (pluginResponse == null)
 		{
-			String path = rootDir.getPath() + uri;
-			System.out.println("path: "+path);
-			File f = new File(rootDir.getPath() + uri);
-			
-			if (f.exists() && f.isFile())
+			// If committing some nefarious deed...
+			if (method == Method.POST)
 			{
-				FileInputStream fin = null;
-				try { fin = new FileInputStream(f); }
-				catch (FileNotFoundException e) { e.printStackTrace(); }
+				// NOTE: Let us organize by behavior or action...
+				System.out.println("POST: okay, uri: "+uri);
 				
-				String ext = "txt";
-				if (f.getName().contains("."))
-				{
-					ext = f.getName().substring(f.getName().lastIndexOf('.')+1);
-					System.out.println("file extension: "+ext);
-				}
 				
-				if (extensionMimeTypes.containsKey(ext.toLowerCase()))
+			}
+			
+			// If directly serving a file...
+			else if (method == Method.GET)
+			{
+				String path = rootDir.getPath() + uri;
+				System.out.println("path: "+path);
+				File f = new File(rootDir.getPath() + uri);
+				
+				if (f.exists() && f.isFile())
 				{
-					String mimeType = extensionMimeTypes.get(ext.toLowerCase());
-					return new Response(Response.Status.OK, mimeType, fin);
+					FileInputStream fin = null;
+					try { fin = new FileInputStream(f); }
+					catch (FileNotFoundException e) { e.printStackTrace(); }
+					
+					String ext = "txt";
+					if (f.getName().contains("."))
+					{
+						ext = f.getName().substring(f.getName().lastIndexOf('.')+1);
+						System.out.println("file extension: "+ext);
+					}
+					
+					if (extensionMimeTypes.containsKey(ext.toLowerCase()))
+					{
+						String mimeType = extensionMimeTypes.get(ext.toLowerCase());
+						return new Response(Response.Status.OK, mimeType, fin);
+					}
 				}
 			}
 		}
@@ -130,9 +147,11 @@ public class Server extends NanoHTTPD
 			"No can the do, dearest.");
 	}
 	
-	public static abstract class Plugin
+	public static interface Plugin
 	{
-		public abstract boolean canHandleRequest();
-		public abstract Map<String,Object> handleRequest();
+		public boolean canHandleRequest(String uri, Method method, Map<String,
+			String> headers, Map<String, String> parms, Map<String, String> files);
+		public Response handleRequest(String uri, Method method, Map<String,
+			String> headers, Map<String, String> parms, Map<String, String> files);
 	}
 }

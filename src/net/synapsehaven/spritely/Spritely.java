@@ -2,259 +2,170 @@ package net.synapsehaven.spritely;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import javax.imageio.ImageIO;
-
-import fi.iki.elonen.NanoHTTPD;
-import fi.iki.elonen.ServerRunner;
 
 public class Spritely //implements Plugins.LocalWebServerPlugin
 {
 	protected final static int maxImageSize = 4000000;
 	
-	protected Spritely.Session currentSession = null;
+	protected Map<String,Session> sessions = new HashMap<String,Session>();
 	
-	//protected BufferedImage workingImage = null;
-	//protected File workingImageFile = null;
-	
-	protected void initNewSession()
+	public Map<String,Object> setImageFile(String id, File f)
 	{
-		currentSession = new Session();
-	}
-	
-	public void acquireImageFile(File file)
-	{
-		if (currentSession == null)
-			return;
+		Map<String,Object> ret = new HashMap<String,Object>();
+		Session session = null;
 		
-		currentSession.acquireImageFile(file);
-		
-		/*
-		if (file.length() > maxImageSize)
-			return;
-		
-		File f = null;
-		BufferedImage im = null;
-		try {
-			im = ImageIO.read(file);
-			f = new File("tmp/"+file.getName());
-			ImageIO.write(im, "png", f);			
+		if (f == null)
+		{
+			System.err.println("ERROR: File is null");
+			ret.put(Standard.StatusKey, Status.FAILURE);
+			ret.put(Standard.DescriptionKey, "File parameter is null");
+			return ret;
 		}
-		catch (IOException e) { e.printStackTrace(); }
 		
-		workingImage = im;
-		workingImageFile = f;
-		//*/
+		// If a session matching the id already exists, remove it
+		// TODO: A session may constitute more than an image edit; this may
+		//       have to change, later.
+		if (sessions.containsKey(id))
+		{
+			if (sessions.get(id).cleanup())
+				sessions.remove(id);
+			else
+			{
+				// TODO: A standard error log system would be nice...
+				System.err.println(String.format(
+					"ERROR: Session Cleanup of file %s failed",
+					sessions.get(id).getWorkingImageFile().getName()));
+				ret.put(Standard.StatusKey, Status.FAILURE);
+				return ret;
+			}
+		}
+		
+		session = new Session(f);
+		sessions.put(id, session);
+		
+		// TODO: Some kind of proper value...
+		ret.put(Standard.StatusKey, Status.SUCCESS);
+		ret.put(Standard.RelativeFilePathKey, session.getWorkingImageFileRelativePath());
+		return ret;
 	}
 	
-	public File getImageFile()
+	public Map<String,Object> getImageFile(String id)
 	{
-		return currentSession.imageSet.getWorkingImageFile();
+		Map<String,Object> ret = new HashMap<String,Object>();
+		
+		if (!sessions.containsKey(id))
+		{
+			// Must translate to some failure response status...
+			ret.put(Standard.StatusKey, Status.FAILURE);
+			return ret;
+		}
+		
+		ret.put(Standard.FileKey, sessions.get(id).getWorkingImageFile());
+		ret.put(Standard.StatusKey, Status.SUCCESS);
+		
+		return ret;
 	}
 	
 	public class Session
 	{
-		// Why am I using non-static classes for this?
-		protected ImageSet imageSet = this.new ImageSet();
+		private static final String localImageFileExtension = "png";
 		
-		public void acquireImageFile(File file)
+		public Session(File imageFile)
 		{
-			imageSet.setWorkingImageFile(file);
+			logActivity("session construction for image file: "+imageFile.getName());
+			
+			this.setWorkingImageFile(imageFile);
 		}
 		
-		public class ImageSet
+		private BufferedImage workingImage = null;
+		private File workingImageFile = null;
+		private long startTime = System.currentTimeMillis();
+		private long lastActive = startTime;
+		
+		public BufferedImage getWorkingImage()
+		{ return workingImage; }
+		public File getWorkingImageFile()
+		{ return workingImageFile; }
+		// TODO: Where should the relative file be stored and how should it be handled?
+		public String getWorkingImageFileRelativePath()
+		{ return "tmp/"+this.getWorkingImageFile().getName(); }
+		public String getWorkingImageFileExtension()
+		{ return "png"; }
+		
+		public boolean cleanup()
 		{
-			protected BufferedImage workingImage = null;
-			protected File workingImageFile = null;
+			logActivity("cleaning up");
 			
-			private BufferedImage lineDivisions;
-			private BufferedImage characterOutlines;
+			if (workingImageFile.delete())
+				return  true;
+			else
+				return false;
+		}
+		
+		@SuppressWarnings("deprecation")
+		private void logActivity(String activity)
+		{
+			lastActive = System.currentTimeMillis();
+			Date date = new Date(lastActive);
 			
-			public BufferedImage getWorkingImage() { return workingImage; }
-			public BufferedImage getLineDivisionImage() { return lineDivisions; }
-			public BufferedImage getCharacterOutlines() { return characterOutlines; }
+			String logString = String.format("%04d/%02d/%02d_%02d:%02d:%02d> %s",
+				date.getYear()+1, date.getMonth()+1, date.getDay()+1,
+				date.getHours(),date.getMinutes(), date.getSeconds(),
+				activity);
 			
-			public File getWorkingImageFile()
+			// TODO: Something that ties in to Spritely's logfile setup.
+			System.out.println(logString);
+		}
+		
+		private boolean setWorkingImageFile(File file)
+		{
+			if (file.length() > maxImageSize)
 			{
-				return workingImageFile;
+				logActivity(String.format(
+					"image file size (%d bytes) greater than maximum (%d)",
+					file.length(),
+					maxImageSize));
+				return false;
 			}
 			
-			public void setWorkingImageFile(File file)
-			{
-				if (file.length() > maxImageSize)
-					return;
-				
-				File f = null;
-				BufferedImage im = null;
-				try {
-					im = ImageIO.read(file);
-					f = new File("tmp/"+file.getName());
-					ImageIO.write(im, "png", f);			
-				}
-				catch (IOException e) { e.printStackTrace(); }
-				
-				workingImage = im;
-				workingImageFile = f;
+			File f = null;
+			BufferedImage im = null;
+			try {
+				im = ImageIO.read(file);
+				f = new File("tmp/"+file.getName());
+				ImageIO.write(im, localImageFileExtension, f);			
 			}
+			catch (IOException e) { e.printStackTrace(); }
+			
+			workingImage = im;
+			workingImageFile = f;
+			
+			return true;
 		}
 	}
 	
-	public class Server extends NanoHTTPD
+	
+	// TODO: This could work just as easily (or more) as an enum...
+	public static class Standard
 	{
-		public Server(int port)
-		{
-			super(port);
-			
-			// NanoHTTPD Text
-			this.addFileExtensionMimeTypeAssociation("txt", MIME_PLAINTEXT);
-			this.addFileExtensionMimeTypeAssociation("htm", MIME_HTML);
-			this.addFileExtensionMimeTypeAssociation("html", MIME_HTML);
-			
-			// Other Text
-			this.addFileExtensionMimeTypeAssociation("js", "text/javascript");
-			this.addFileExtensionMimeTypeAssociation("js", "text/css");
-			this.addFileExtensionMimeTypeAssociation("js", "text/php"); // ?
-			
-			// Images
-			this.addFileExtensionMimeTypeAssociation("bmp", "image/bmp");
-			this.addFileExtensionMimeTypeAssociation("gif", "image/gif");
-			this.addFileExtensionMimeTypeAssociation("jpeg", "image/jpeg");
-			this.addFileExtensionMimeTypeAssociation("jpg", "image/jpeg");
-			this.addFileExtensionMimeTypeAssociation("png", "image/png");
-			this.addFileExtensionMimeTypeAssociation("svg", "image/svg+xml");
-		}
-		
-		// Variable declaration
-		protected Map<String,File> rootMap = new HashMap<String,File>();
-		protected Map<String,String> extensionMimeTypes = new HashMap<String,String>(); 
-		
-		
-		// Hostname-Root Directory Associations
-		public File addRoot(String hostname, File rootDir)
-		{
-			rootMap.put(hostname, rootDir);
-			return rootDir;
-		}
-		public File addRoot(String hostname, String path)
-		{ return this.addRoot(hostname, new File(path)); }
-		
-		
-		// File Extensions and Mime Types
-		public void addFileExtensionMimeTypeAssociation(String ext, String mimeType)
-		{
-			extensionMimeTypes.put(ext, mimeType);
-		}
-		public List<String> getMimeTypes()
-		{ return new ArrayList<String>(extensionMimeTypes.values()); }
-		public Map<String,String> getFileExtensionMimeTypeAssociations()
-		{ return Collections.unmodifiableMap(extensionMimeTypes); }
-		
-		
-		// NanoHTTPD-extending methods
-		@Override
-		public Response serve(String uri, Method method, Map<String,
-			String> headers, Map<String, String> parms, Map<String, String> files)
-		{
-			// A little output
-			System.out.println("Gorp serve!");
-			System.out.println("headers: "+headers);
-			System.out.println("files: "+files);
-			
-			// 
-			String host = headers.get("host");
-			File rootDir = null;
-			for (Entry<String,File> a : rootMap.entrySet())
-			{
-				System.out.println(a+" "+host);
-				if (a.getKey().equalsIgnoreCase(host.replaceFirst(":[0-9]{1,5}$", "")))
-				{
-					rootDir = a.getValue();
-					break;
-				}
-			}
-			
-			// If committing some nefarious deed...
-			if (method == Method.POST)
-			{
-				// NOTE: Let us organize by behavior or action...
-				System.out.println("POST: okay, uri: "+uri);
-				
-				// SPRITELY: Special Methods
-				if (uri.startsWith("/:heretakethis"))
-				{
-					System.out.println(headers.get("content-type").contains("multipart/form-data"));
-					
-					if (headers.containsKey("content-type") &&
-						headers.get("content-type").contains("multipart/form-data"))
-					{
-						System.out.println("Multipart... Multipart... Muuultiiipaaart...");
-						
-						Spritely.this.initNewSession();
-						
-						for (Entry<String,String> e : files.entrySet())
-						{
-							System.out.println("- file "+e);
-							Spritely.this.acquireImageFile(new File(e.getValue()));
-						}
-					}
-					
-					return new Response(
-						Response.Status.OK,
-						"text/plain",
-						"tmp/"+Spritely.this.getImageFile().getName());
-				}
-			}
-			
-			// If directly serving a file...
-			else if (method == Method.GET)
-			{
-				// SPRITELY: Special GET
-				if (uri.startsWith("/:getimage"))
-				{
-					InputStream in = null;
-					try { in = new FileInputStream(Spritely.this.getImageFile()); }
-					catch (IOException e) { e.printStackTrace(); }
-					return new Response(Response.Status.OK, "image/png", in);
-				}
-				
-				String path = rootDir.getPath() + uri;
-				System.out.println("path: "+path);
-				File f = new File(rootDir.getPath() + uri);
-				
-				if (f.exists() && f.isFile())
-				{
-					FileInputStream fin = null;
-					try { fin = new FileInputStream(f); }
-					catch (FileNotFoundException e) { e.printStackTrace(); }
-					
-					String ext = "txt";
-					if (f.getName().contains("."))
-					{
-						ext = f.getName().substring(f.getName().lastIndexOf('.')+1);
-						System.out.println("file extension: "+ext);
-					}
-					
-					if (extensionMimeTypes.containsKey(ext.toLowerCase()))
-					{
-						String mimeType = extensionMimeTypes.get(ext.toLowerCase());
-						return new Response(Response.Status.OK, mimeType, fin);
-					}
-				}
-			}
-			
-			return new Response(Response.Status.BAD_REQUEST, MIME_PLAINTEXT,
-				"No can the do, dearest.");
-		}
+		public static final String FileKey = "file";
+		public static final String RelativeFilePathKey = "relativepath";
+		public static final String AbsoluteFilePathKey = "absolutepath";
+		public static final String StatusKey = "status";
+		public static final String DescriptionKey = "description";
+	}
+	
+	public static enum Status
+	{
+		SUCCESS,
+		FAILURE,
+		INVALID_ID
 	}
 	
 }
